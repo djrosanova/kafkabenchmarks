@@ -41,7 +41,8 @@ then
     PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nclient.id=mirror_maker_producer\nrequest.timeout.ms=60000\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
     echo -e $PERF_PRODUCER_CONFIG > perf.config
     nohup kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count &
-    nohup kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count &
+    kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
+#    nohup kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count &
 
 else
     echo "missing -b bootstrap servers, use -h for help"
