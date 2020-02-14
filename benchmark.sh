@@ -34,6 +34,8 @@ while getopts ":t:c:s:r:b:u:p:h:" opt; do
     ;;
   esac
 done
+echo "bootstrap" $bootstrap
+
 if [[ ! -z $bootstrap ]]
 then
     PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nclient.id=mirror_maker_producer\nrequest.timeout.ms=60000\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
