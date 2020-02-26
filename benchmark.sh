@@ -34,7 +34,6 @@ while getopts ":t:c:s:r:b:u:p:h:" opt; do
     ;;
   esac
 done
-echo "bootstrap" $bootstrap
 
 if [[ ! -z $bootstrap ]]
 then
