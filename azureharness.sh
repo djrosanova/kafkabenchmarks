@@ -65,4 +65,4 @@ do
 done
 
 #clean up resources
-az group delete --name $rgname
+az group delete --name $rgname -y
