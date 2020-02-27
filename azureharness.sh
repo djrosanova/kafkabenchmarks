@@ -58,7 +58,7 @@ do
    do
      #echo checking status of $name
      status=$(az container show --name $name --resource-group $rgname --query 'containers[0].instanceView.currentState.detailStatus')
-     sleep 1m
+     sleep 30
    done
    echo report for $rgname $name >> log.txt
    az container logs --resource-group $rgname --name $name >> log.txt
