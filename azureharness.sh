@@ -24,13 +24,13 @@ do
        testend="$(cut -d "," -f 2 <<<"$line")"
        readSpeed="$(cut -d "," -f 6 <<<"$line")" 
        totalReadSpeed="$(echo "$totalReadSpeed + $readSpeed" | bc -l)"
-   elif [[ $col1 == *"test started at"* ]]; then
+   elif [[ $col1 == *"Test started at"* ]]; then
      echo $line '\n'
    fi
 done < "$1"
 avgspeed="$(echo "$totalspeed/$count" | bc -l)"
 avgread="$(echo "$totalReadSpeed/$count" | bc -l)"
-echo Test start teststart end $testend Send Average $(printf %.2f "$(echo "$avgspeed*$instanceCount" | bc -l)") messages per second $(printf %2f "$(echo "$avgread*$instanceCount" | bc -l)")  across $instanceCount instances
+echo Test start $teststart end $testend Send Average $(printf %.2f "$(echo "$avgspeed*$instanceCount" | bc -l)") messages per second $(printf %2f "$(echo "$avgread*$instanceCount" | bc -l)")  across $instanceCount instances
 }
 
 topic=mytopic
