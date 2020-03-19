@@ -47,9 +47,9 @@ then
     then
       nohup kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count &
       kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
-    elif [[ $mode == "send" ]];
+    elif [[ $mode == "send" ]]; then
        kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count
-    elif [[ $mode == "receive" ]];
+    elif [[ $mode == "receive" ]]; then 
        kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
     fi
 else
