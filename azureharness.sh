@@ -6,9 +6,11 @@ totalspeed=0
 totalReadSpeed=0
 count=0
 instanceCount=0
-#readInstanceCount=0
+readInstanceCount=0
+writeInstanceCount=0
 mbpsIn=0
 mbpsOut=0
+newReport=0
 
 while read line
 do
@@ -16,6 +18,7 @@ do
    colLen=${#col1}
    if [[ $col1 == "report for"* ]]; then
      ((instanceCount++))
+     newReport=1
    elif [[ $col1 == *"records sent"* ]]; then
      speedstr="$(cut -d "," -f 2 <<<"$line")"
      speed="$(cut -d ' ' -f 2 <<<"$speedstr")"
@@ -24,7 +27,12 @@ do
      mbIn="$(cut -d "(" -f 2 <<<"$speedstr")"
      mbIn="$(cut -d ' ' -f 1  <<<"$mbIn")"
      mbpsIn="$(echo $mbpsIn + $mbIn | bc -l)"
+     if [[ $newReport == 1 ]]; then
+       ((writeInstanceCount++))
+       newReport=0
+     fi
    elif [[ $colLen == 23 ]]; then
+       ((readInstanceCount++))
        teststart=$col1
        testend="$(cut -d "," -f 2 <<<"$line")"
        readSpeed="$(cut -d "," -f 6 <<<"$line")"
@@ -36,22 +44,20 @@ do
    fi
 done < "$1"
 avgspeed="$(echo "$totalspeed/$count" | bc -l)"
-avgread="$(echo "$totalReadSpeed/$count" | bc -l)"
-
-formattedMBpsIn="$(echo $mbpsIn/$count*$instanceCount | bc -l)"
-formattedMBpsOut="$(echo $mbpsOut/$instanceCount | bc -l)"
-msgRateIn="$(echo $avgspeed*$instanceCount | bc -l)"
-msgRateOut="$(echo $avgread*$instanceCount | bc -l)"
-echo Test start $teststart end $testend Send $(printf %.2f $msgRateIn) msgs/sec Read $(printf %.2f $msgRateOut) Send $(printf %.2f $formattedMBpsIn) MBps Read $(printf %.2f $formattedMBpsOut) MBps across $instanceCount instances
+formattedMBpsIn="$(echo "($mbpsIn/$count)*$writeInstanceCount" | bc -l)"
+formattedMBpsOut="$(echo $mbpsOut + 1 | bc -l)"
+msgRateIn="$(echo $avgspeed*$writeInstanceCount | bc -l)"
+echo Test start $teststart end $testend Send $(printf %.2f $msgRateIn) msgs/sec Read $(printf %.2f $totalReadSpeed) Send $(printf %.2f $formattedMBpsIn) MBps Read $(printf %.2f $formattedMBpsOut) MBps across $writeInstanceCount send instances $readInstanceCount read instances
 }
-
 
 topic=mytopic
 count=100000
 size=1024
 rate=-1
 instances=3
-while getopts ":t:c:s:r:b:u:p:h:" opt; do
+location=eastus
+ratio=3
+while getopts ":t:c:s:r:b:u:p:h:l:i:" opt; do
   case $opt in
     t) topic="$OPTARG"
     ;;
@@ -59,7 +65,7 @@ while getopts ":t:c:s:r:b:u:p:h:" opt; do
     ;;
     s) size="$OPTARG"
     ;;
-    r) rate="$OPTARG"
+    r) ratio="$OPTARG"
     ;;
     b) brokers="$OPTARG"
     ;;
@@ -67,15 +73,23 @@ while getopts ":t:c:s:r:b:u:p:h:" opt; do
     ;;
     p) password="$OPTARG"
     ;;
-
+    l) location="$OPTARG"
+    ;;
+    i) instances="$OPTARG"
+    ;;
     h) echo usage
-        echo -t topic to send to
-        echo -c count of messages to sned
-        echo -s size of each message
-        echo -r rate per second to send
+        echo Required:
         echo -b bootstrap servers DNS, with port, for your Confluent Cloud cluster
         echo -u cluster API key
         echo -p cluster API secret
+
+        echo Optional:
+        echo -t topic to send to: default "mytopic"
+        echo -c count of messages to send from each instance: default 100000
+        echo -s size of each message: default 1024 (1kb)
+        echo -r ratio of reads to write: default 3x
+        echo -l location of the Azure region to run in. Use "az account list-locations" to get the name of a region: default eastus
+        echo -i instances number of send instances to use: default 3
     ;;
     \?) echo "Invalid option -$OPTARG use -h for help" >&2
     ;;
@@ -86,18 +100,24 @@ rgname=kafkabenchmark$RANDOM
 
 #still need to create topic
 
-az group create --name $rgname --location eastus
+az group create --name $rgname --location $location -o table
 reportDate=$(date +%Y-%m-%d_%H:%M)
 echo "Test started at: $reportDate Topic:$topic Per Instance Message Count:$count Message Size:$size Brokers:$brokers" > ${reportDate}_log.txt
 #start the containers
-for (( i=1; i<=$instances; i++ ))
+totalInstances="$(echo "$instances*$ratio" | bc -l)"
+for (( i=1; i<=$totalInstances; i++ ))
 do  
    name=benchmark$i
-   az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count'"
+   mode=both
+   if [[ $i > $instances ]];
+   then
+     mode=receive
+   fi
+   az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count -m $mode'"
 done    
 
 #cycle through containers to get results
-for (( i=1; i<=$instances; i++ ))
+for (( i=1; i<=$totalInstances; i++ ))
 do 
    status=NA
    name=benchmark$i
@@ -111,4 +131,5 @@ do
 done
 
 #clean up resources
-az group delete --name $rgname -y 
+az group delete --name $rgname -y
+report ${reportDate}_log.txt 
