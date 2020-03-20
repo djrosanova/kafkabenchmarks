@@ -86,7 +86,7 @@ while getopts ":t:c:s:r:b:u:p:h:l:i:" opt; do
         echo Optional:
         echo -t topic to send to: default "mytopic"
         echo -c count of messages to send from each instance: default 100000
-        echo -s size of each message: default 1024 (1kb)
+        echo -s size of each message: default 1024 1kb
         echo -r ratio of reads to write: default 3x
         echo -l location of the Azure region to run in. Use "az account list-locations" to get the name of a region: default eastus
         echo -i instances number of send instances to use: default 3
