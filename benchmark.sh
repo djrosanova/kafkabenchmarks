@@ -43,15 +43,16 @@ if [[ ! -z $bootstrap ]]
 then
     PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nclient.id=mirror_maker_producer\nrequest.timeout.ms=60000\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
     echo -e $PERF_PRODUCER_CONFIG > perf.config
-    if [[ $mode == "both" ]]
+    if [[ $mode == "both" ]];
     then
       nohup kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count &
       kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
-    elif [[ $mode == "send" ]]
+    elif [[ $mode == "send" ]]; then
        kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count
-    elif [[ $mode == "receive" ]]
+    elif [[ $mode == "receive" ]]; then 
        kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
     fi
 else
     echo "missing -b bootstrap servers, use -h for help"
 fi
+
