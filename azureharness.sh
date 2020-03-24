@@ -48,6 +48,8 @@ formattedMBpsIn="$(echo "($mbpsIn/$count)*$writeInstanceCount" | bc -l)"
 formattedMBpsOut="$(echo $mbpsOut + 1 | bc -l)"
 msgRateIn="$(echo $avgspeed*$writeInstanceCount | bc -l)"
 echo Test start $teststart end $testend Send $(printf %.2f $msgRateIn) msgs/sec Read $(printf %.2f $totalReadSpeed) Send $(printf %.2f $formattedMBpsIn) MBps Read $(printf %.2f $formattedMBpsOut) MBps across $writeInstanceCount send instances $readInstanceCount read instances
+
+echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
 }
 
 topic=mytopic
@@ -100,9 +102,12 @@ rgname=kafkabenchmark$RANDOM
 
 #still need to create topic
 
+echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
+echo "|                                                      KAFKA BENCHMARK TEST STARTED                                                                   "
 az group create --name $rgname --location $location -o table
 reportDate=$(date +%Y-%m-%d_%H:%M)
-echo "Test started at: $reportDate Topic:$topic Per Instance Message Count:$count Message Size:$size Brokers:$brokers" > ${reportDate}_log.txt
+echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
+echo "Test started at: $reportDate Topic:$topic Per Instance Message Count:$count Message Size:$size Brokers:$brokers Send Instances:$instances Ratio:$ratio Location:$location" > ${reportDate}_log.txt
 #start the containers
 totalInstances="$(echo "$instances*$ratio" | bc -l)"
 for (( i=1; i<=$totalInstances; i++ ))
@@ -113,7 +118,7 @@ do
    then
      mode=receive
    fi
-   az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count -m $mode'"
+   az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count -m $mode -s $size -r $rate'"
 done    
 
 #cycle through containers to get results
