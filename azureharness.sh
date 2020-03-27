@@ -121,11 +121,11 @@ reportDate=$(date +%Y-%m-%d_%H:%M)
 echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
 echo "Test started at: $reportDate Topic:$topic Per Instance Message Count:$count Message Size:$size Brokers:$brokers Send Instances:$instances Ratio:$ratio Location:$location" > ${reportDate}_log.txt
 #start the containers
-totalInstances="$(echo "$instances*$ratio" | bc -l)"
+totalInstances="$(echo "$instances+$instances*$ratio" | bc -l)"
 for (( i=1; i<=$totalInstances; i++ ))
 do  
    name=benchmark$i
-   mode="both"
+   mode="send"
    if [[ $i -gt $instances ]];
    then
      mode="receive"
