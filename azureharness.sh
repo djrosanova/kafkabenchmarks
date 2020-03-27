@@ -47,7 +47,7 @@ avgspeed="$(echo "$totalspeed/$count" | bc -l)"
 formattedMBpsIn="$(echo "($mbpsIn/$count)*$writeInstanceCount" | bc -l)"
 formattedMBpsOut="$(echo $mbpsOut + 1 | bc -l)"
 msgRateIn="$(echo $avgspeed*$writeInstanceCount | bc -l)"
-echo Test start $teststart end $testend Send $(printf %.2f $msgRateIn) msgs/sec Read $(printf %.2f $totalReadSpeed) Send $(printf %.2f $formattedMBpsIn) MBps Read $(printf %.2f $formattedMBpsOut) MBps across $writeInstanceCount send instances $readInstanceCount read instances
+echo Test start $teststart end $testend Send: $(printf %.2f $msgRateIn) msgs/sec Read: $(printf %.2f $totalReadSpeed) Send: $(printf %.2f $formattedMBpsIn) MBps Read: $(printf %.2f $formattedMBpsOut) MBps across $writeInstanceCount send instances $readInstanceCount read instances
 
 echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
 }
@@ -59,7 +59,8 @@ rate=-1
 instances=3
 location=eastus
 ratio=3
-while getopts ":t:c:s:r:b:u:p:h:l:i:" opt; do
+reportOnly=0
+while getopts ":t:c:s:r:b:u:p:h:l:i:o:" opt; do
   case $opt in
     t) topic="$OPTARG"
     ;;
@@ -79,6 +80,9 @@ while getopts ":t:c:s:r:b:u:p:h:l:i:" opt; do
     ;;
     i) instances="$OPTARG"
     ;;
+    o) reportOnly=1
+       reportPath="$OPTARG"
+    ;;
     h) echo usage
         echo Required:
         echo -b bootstrap servers DNS, with port, for your Confluent Cloud cluster
@@ -92,18 +96,26 @@ while getopts ":t:c:s:r:b:u:p:h:l:i:" opt; do
         echo -r ratio of reads to write: default 3x
         echo -l location of the Azure region to run in. Use "az account list-locations" to get the name of a region: default eastus
         echo -i instances number of send instances to use: default 3
+        echo -o report only takes a file of a previous run log and reports the output
     ;;
     \?) echo "Invalid option -$OPTARG use -h for help" >&2
     ;;
   esac
 done
 
+echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
+
+if [[ $reportOnly -eq 1 ]]; then
+ echo "|                                                      KAFKA BENCHMARK REPORT                                                                        |"
+ report $reportPath
+ exit 0
+fi
+
 rgname=kafkabenchmark$RANDOM
 
-#still need to create topic
+#still need to create to create topics
 
-echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
-echo "|                                                      KAFKA BENCHMARK TEST STARTED                                                                   "
+echo "|                                                      KAFKA BENCHMARK TEST STARTED                                                                  |"
 az group create --name $rgname --location $location -o table
 reportDate=$(date +%Y-%m-%d_%H:%M)
 echo "------------------------------------------------------------------------------------------------------------------------------------------------------"
@@ -113,10 +125,10 @@ totalInstances="$(echo "$instances*$ratio" | bc -l)"
 for (( i=1; i<=$totalInstances; i++ ))
 do  
    name=benchmark$i
-   mode=both
-   if [[ $i > $instances ]];
+   mode="both"
+   if [[ $i -gt $instances ]];
    then
-     mode=receive
+     mode="receive"
    fi
    az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count -m $mode -s $size -r $rate'"
 done    
