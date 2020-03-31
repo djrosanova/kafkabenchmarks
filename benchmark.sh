@@ -43,16 +43,16 @@ done
 
 if [[ ! -z $bootstrap ]]
 then
-    PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nrequest.timeout.ms=60000\nacks=all\ngroup.id=consumergroup$consumerGroup\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
+    PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nrequest.timeout.ms=60000\nacks=all\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
     echo -e $PERF_PRODUCER_CONFIG > perf.config
     if [[ $mode == "both" ]];
     then
       nohup kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count &
-      kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
+      kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count --group group$consumerGroup
     elif [[ $mode == "send" ]]; then
        kafka-producer-perf-test --topic $topic --record-size $size --producer.config perf.config  --throughput $rate --num-records $count
     elif [[ $mode == "receive" ]]; then 
-       kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count
+       kafka-consumer-perf-test --broker-list $bootstrap --consumer.config perf.config --topic $topic --messages $count --group group$consumerGroup
     fi
 else
     echo "missing -b bootstrap servers, use -h for help"
