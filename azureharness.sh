@@ -123,14 +123,15 @@ echo "Test started at: $reportDate Topic:$topic Per Instance Message Count:$coun
 #start the containers
 totalInstances="$(echo "$instances+$instances*$ratio" | bc -l)"
 for (( i=1; i<=$totalInstances; i++ ))
-do  
+do 
+   consumerGroup=$(echo $(($i%$ratio))) 
    name=benchmark$i
    mode="send"
    if [[ $i -gt $instances ]];
    then
      mode="receive"
    fi
-   az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count -m $mode -s $size -r $rate'"
+   az container create --resource-group $rgname --name $name --no-wait --restart-policy Never --image confluentinc/cp-kafka --command-line "/bin/bash -c 'bash <( curl https://raw.githubusercontent.com/djrosanova/kafkabenchmarks/master/benchmark.sh ) -b $brokers -u $username -p $password -t $topic -c $count -m $mode -s $size -r $rate -g $consumerGroup'"
 done    
 
 #cycle through containers to get results

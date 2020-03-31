@@ -5,7 +5,8 @@ count=10000
 size=1024
 rate=-1
 mode="both"
-while getopts ":t:c:s:r:b:u:p:h:m:" opt; do
+consumerGroup=1
+while getopts ":t:c:s:r:b:u:p:h:m:g:" opt; do
   case $opt in
     t) topic="$OPTARG"
     ;;
@@ -23,7 +24,8 @@ while getopts ":t:c:s:r:b:u:p:h:m:" opt; do
     ;;
     m) mode="$OPTARG"
     ;;
-
+    g) consumerGroup="$OPTARG"
+    ;;
     h) echo usage
         echo -t topic to send to
         echo -c count of messages to sned
@@ -41,7 +43,7 @@ done
 
 if [[ ! -z $bootstrap ]]
 then
-    PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nrequest.timeout.ms=60000\nacks=all\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
+    PERF_PRODUCER_CONFIG="bootstrap.servers=$bootstrap\nrequest.timeout.ms=60000\nacks=all\ngroup.id=$consumerGroup\nsasl.mechanism=PLAIN\nsecurity.protocol=SASL_SSL\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
     echo -e $PERF_PRODUCER_CONFIG > perf.config
     if [[ $mode == "both" ]];
     then
